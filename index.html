@@ -63,7 +63,12 @@
                 }
             }
         });
-
+        
+         function formatTimestamp(unixTimestamp) {
+            const date = new Date(unixTimestamp * 1000); // Unix timestamp saniye cinsinden olduğu için 1000 ile çarpıyoruz
+            return date.toLocaleString(); // Kullanıcının yerel tarih formatına çevirir
+        }
+        
         onValue(dataRef, (snapshot) => {
             const data = snapshot.val();
             labels.length = 0;
@@ -71,7 +76,7 @@
             humidityData.length = 0;
             
             Object.keys(data).forEach((key) => {
-                labels.push(data[key].timestamp);
+                labels.push(formatTimestamp(parseInt(data[key].timestamp)));
                 temperatureData.push(data[key].temperature);
                 humidityData.push(data[key].humidity);
             });
