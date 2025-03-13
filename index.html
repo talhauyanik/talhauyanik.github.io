@@ -8,6 +8,12 @@
 </head>
 <body>
     <h2>ESP32 Sensor Data</h2>
+    <label for="timeRange">Select Time Range:</label>
+    <select id="timeRange">
+        <option value="1">Last 1 Hour</option>
+        <option value="3">Last 3 Hours</option>
+        <option value="6">Last 6 Hours</option>
+    </select>
     <canvas id="sensorChart"></canvas>
 
     <script type="module">
@@ -15,7 +21,7 @@
         import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         
         const firebaseConfig = {
-              apiKey: "AIzaSyAkmtB79Rt1gzfRb7-R5hBaXhNln6hcAlA",
+            apiKey: "AIzaSyAkmtB79Rt1gzfRb7-R5hBaXhNln6hcAlA",
               authDomain: "sensordata-e720d.firebaseapp.com",
               databaseURL: "https://sensordata-e720d-default-rtdb.europe-west1.firebasedatabase.app",
               projectId: "sensordata-e720d",
@@ -25,8 +31,6 @@
               measurementId: "G-B32EC2D1E6"
         };
 
-      
-
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         const dataRef = ref(db, "sensorData");
@@ -34,7 +38,7 @@
         let labels = [];
         let temperatureData = [];
         let humidityData = [];
-        
+
         const ctx = document.getElementById("sensorChart").getContext("2d");
         const sensorChart = new Chart(ctx, {
             type: "line",
@@ -63,26 +67,35 @@
                 }
             }
         });
-        
-         function formatTimestamp(unixTimestamp) {
-            const date = new Date(unixTimestamp * 1000); // Unix timestamp saniye cinsinden olduğu için 1000 ile çarpıyoruz
-            return date.toLocaleString(); // Kullanıcının yerel tarih formatına çevirir
-        }
-        
-        onValue(dataRef, (snapshot) => {
-            const data = snapshot.val();
-            labels.length = 0;
-            temperatureData.length = 0;
-            humidityData.length = 0;
-            
-            Object.keys(data).forEach((key) => {
-                labels.push(formatTimestamp(parseInt(data[key].timestamp)));
-                temperatureData.push(data[key].temperature);
-                humidityData.push(data[key].humidity);
+
+        function updateChart(timeRange) {
+            onValue(dataRef, (snapshot) => {
+                const data = snapshot.val();
+                labels.length = 0;
+                temperatureData.length = 0;
+                humidityData.length = 0;
+                
+                const now = Date.now();
+                const cutoffTime = now - timeRange * 60 * 60 * 1000; // Convert hours to milliseconds
+                
+                Object.keys(data).forEach((key) => {
+                    const timestamp = data[key].timestamp;
+                    if (timestamp >= cutoffTime) {
+                        labels.push(new Date(timestamp).toLocaleTimeString());
+                        temperatureData.push(data[key].temperature);
+                        humidityData.push(data[key].humidity);
+                    }
+                });
+                
+                sensorChart.update();
             });
-            
-            sensorChart.update();
+        }
+
+        document.getElementById("timeRange").addEventListener("change", (event) => {
+            updateChart(parseInt(event.target.value));
         });
+
+        updateChart(1); // Default to last 1 hour
     </script>
 </body>
 </html>
