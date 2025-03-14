@@ -4,85 +4,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ESP32 Sensor Data</title>
+    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
     <h2>ESP32 Sensor Data</h2>
+
+    <!-- Tarih Seçici ve Filtreleme Butonları -->
+    <div class="filter-container">
+        <button onclick="filterData('1h')">Son 1 Saat</button>
+        <button onclick="filterData('3h')">Son 3 Saat</button>
+        <button onclick="filterData('6h')">Son 6 Saat</button>
+        <button onclick="filterData('12h')">Son 12 Saat</button>
+        <button onclick="filterData('1d')">Son 1 Gün</button>
+        <button onclick="filterData('3d')">Son 3 Gün</button>
+        <button onclick="filterData('1w')">Son 1 Hafta</button>
+        <button onclick="filterData('1m')">Son 1 Ay</button>
+        <button onclick="filterData('3m')">Son 3 Ay</button>
+        <button onclick="filterData('6m')">Son 6 Ay</button>
+        <button onclick="filterData('1y')">Son 1 Yıl</button>
+        <button onclick="filterData('all')">Tüm Zamanlar</button>
+    </div>
+
+    <!-- Özel Tarih Aralığı Seçici -->
+    <input type="text" id="customDateRange" placeholder="Özel Tarih Seç" />
+
     <canvas id="sensorChart"></canvas>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-        
-        const firebaseConfig = {
-              apiKey: "AIzaSyAkmtB79Rt1gzfRb7-R5hBaXhNln6hcAlA",
-              authDomain: "sensordata-e720d.firebaseapp.com",
-              databaseURL: "https://sensordata-e720d-default-rtdb.europe-west1.firebasedatabase.app",
-              projectId: "sensordata-e720d",
-              storageBucket: "sensordata-e720d.firebasestorage.app",
-              messagingSenderId: "134640996581",
-              appId: "1:134640996581:web:33da07f917360256a2040c",
-              measurementId: "G-B32EC2D1E6"
-        };
-
-      
-
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const dataRef = ref(db, "sensorData");
-
-        let labels = [];
-        let temperatureData = [];
-        let humidityData = [];
-        
-        const ctx = document.getElementById("sensorChart").getContext("2d");
-        const sensorChart = new Chart(ctx, {
-            type: "line",
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: "Temperature (°C)",
-                        data: temperatureData,
-                        borderColor: "red",
-                        fill: false
-                    },
-                    {
-                        label: "Humidity (%)",
-                        data: humidityData,
-                        borderColor: "blue",
-                        fill: false
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    x: { title: { display: true, text: "Timestamp" } },
-                    y: { title: { display: true, text: "Value" } }
-                }
-            }
-        });
-        
-         function formatTimestamp(unixTimestamp) {
-            const date = new Date(unixTimestamp * 1000); // Unix timestamp saniye cinsinden olduğu için 1000 ile çarpıyoruz
-            return date.toLocaleString(); // Kullanıcının yerel tarih formatına çevirir
-        }
-        
-        onValue(dataRef, (snapshot) => {
-            const data = snapshot.val();
-            labels.length = 0;
-            temperatureData.length = 0;
-            humidityData.length = 0;
-            
-            Object.keys(data).forEach((key) => {
-                labels.push(formatTimestamp(parseInt(data[key].timestamp)));
-                temperatureData.push(data[key].temperature);
-                humidityData.push(data[key].humidity);
-            });
-            
-            sensorChart.update();
-        });
-    </script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>
