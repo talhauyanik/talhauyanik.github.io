@@ -137,3 +137,4 @@ function filterDataByCustomRange(start, end) {
 
     sensorChart.update();
 }
+window.filterData = filterData; // 🔥 Bunu ekledik!
