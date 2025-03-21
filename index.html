@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 Sensor Data</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script type="module" src="script.js" defer></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- <h2>ESP32 Sensor Data</h2> -->
+    <div class="lastupdate">
+        
+        <div class="temp-humidity">
+            <p>Sıcaklık: <span id="latestTemperature">--</span> °C</p>
+            <p>Nem: <span id="latestHumidity">--</span> %</p>
+        </div>
+        <p id="lastupdateP">Son Güncelleme: <span id="lastUpdatedTime">--</span></p>
+    </div>
+    
+    <!-- Tarih Seçici ve Filtreleme Butonları -->
+    <div class="filter-container">
+        <button onclick="filterData('30m')">30 Dakika</button>
+        <button onclick="filterData('1h')">1 Saat</button>
+        <button onclick="filterData('3h')">3 Saat</button>
+        <button onclick="filterData('6h')">6 Saat</button>
+        <button onclick="filterData('12h')">12 Saat</button>
+        <button onclick="filterData('1d')">1 Gün</button>
+        <button onclick="filterData('3d')">3 Gün</button>
+        <button onclick="filterData('1w')">1 Hafta</button>
+        <button onclick="filterData('1m')">1 Ay</button>
+        <button onclick="filterData('3m')">3 Ay</button>
+        <button onclick="filterData('6m')">6 Ay</button>
+        <button onclick="filterData('1y')">1 Yıl</button>
+        <button onclick="filterData('all')">Tüm Zamanlar</button>
+        <div class="custom-date-filter">
+            <label for="startDate"></label>
+            <input type="text" id="startDate" placeholder="Başlangıç Tarihi">
+            
+            <label for="endDate"></label>
+            <input type="text" id="endDate" placeholder="Bitiş Tarihi">
+        
+            <button onclick="applyCustomDateFilter()">Tarihe Göre Filtrele</button>
+        </div>
+    </div>
+
+    <!-- Özel Tarih Aralığı Seçici -->
+    
+
+    <div class="canvas-container"><canvas id="sensorChart" ></canvas></div>
+    
+    
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+
+</body>
+</html>

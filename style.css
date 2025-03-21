@@ -1,0 +1,207 @@
+/* Genel Stil */
+body {
+    font-family: 'Arial', sans-serif;
+    text-align: center;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 10px;
+}
+
+
+/* Son Güncelleme */
+.lastupdate {
+    display: flex;
+    justify-content: space-between;
+    align-items: center; 
+    
+    position: relative;
+    padding: 10px;
+    background-color: #e0e0e0;
+    border-radius: 8px;
+    border-bottom-right-radius: 0px;
+    border-bottom-left-radius: 0px;
+    margin-left: 10px;
+    margin-right: 10px;
+    
+    
+    
+}
+
+.temp-humidity {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 30px; /* Sıcaklık ve Nem arasında boşluk bırak */
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.temp-humidity p {
+    margin: 0;
+    font-size: 25px;
+    font-weight: bold;
+}
+
+#lastupdateP {
+    font-size: small;
+    color: #727272;
+}
+
+
+/* Son Sıcaklık ve Nem Değerleri */
+p {
+    font-size: 23px;
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+#latestTemperature {
+    color:rgb(233, 75, 17); /* Turuncu tonlu */
+}
+
+#latestHumidity {
+    color: #3498db; /* Mavi tonlu */
+}
+
+/* Flash animasyonu */
+@keyframes flash {
+    0% { background-color: rgb(255, 255, 255); }
+    100% { background-color: transparent; }
+}
+
+.flash {
+    animation: flash 1s ease-in-out;
+}
+
+/* Filtre Butonları Konteyneri */
+.filter-container {
+    display: flex;
+    align-items: center;
+    background: #e0e0e0;
+    padding: 0px 0px 10px 0px;
+    border-radius: 8px;
+    border-top-left-radius: 0px;
+    border-top-right-radius: 0px;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    margin-left: 10px;
+    margin-right: 10px;
+    
+}
+
+/* Filtre Butonları (Genel Görünüm) */
+.filter-container button {
+    background: transparent;
+    border: none;
+    color: #444;
+    font-size: 14px;
+    padding: 6px 6px 6px 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 6px;
+}
+
+/* Seçili (Tıklanan) Buton */
+.filter-container button.active {
+    background: white;
+    color: black;
+    font-weight: bold;
+    border: 1px solid #aaa;
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Hover Efekti */
+.filter-container button:hover {
+    color: white;
+    background: #444;
+   
+}
+
+/* Grafik Alanı */
+.canvas-container {
+    aspect-ratio: 16 / 7;
+    width: 100%;
+    max-width: 100%;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+canvas {
+    width: 100%;
+    height: 100%;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Tarih Filtreleme */
+.custom-date-filter {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 0px;
+    margin-top: 0px;
+}
+
+.custom-date-filter label {
+    font-weight: bold;
+}
+
+.custom-date-filter input {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.custom-date-filter button {
+    background-color: #008CBA;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.custom-date-filter button:hover {
+    background-color: #004387;
+}
+
+/* Genel Stil */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Responsive Tasarım */
+@media (max-width: 768px) {
+    .lastupdate {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .temp-humidity {
+        position: static;
+        transform: none;
+        margin-top: 10px;
+    }
+
+    #lastUpdatedTime {
+        position: static;
+        text-align: left;
+        margin-top: 10px;
+    }
+
+    .filter-container {
+        flex-direction: column;
+    }
+
+    .custom-date-filter {
+        flex-direction: column;
+    }
+}
