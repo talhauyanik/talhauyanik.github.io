@@ -1,6 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-import firebaseConfig from './config.js';
+import { getDatabase, ref, onValue, get, query, orderByChild, startAt,update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";import firebaseConfig from './config.js';
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
@@ -18,7 +17,7 @@ document.querySelectorAll(".filter-container button").forEach(button => {
 });
 
 // grafik ayarları
-const ctx = document.getElementById("sensorChart").getContext("2d");
+const ctx = document.getElementById("sensorChart").getContext("2d"); 
 const sensorChart = new Chart(ctx, {
     type: "line",
     data: {
@@ -143,6 +142,22 @@ function updateLatestValues(temp, humidity, timestamp) {
         }, 500);
     
 }
+setInterval(() => {
+    // En son veriyi çekmek için sorgu
+    const latestQuery = query(dataRef, orderByChild("timestamp"));
+    get(latestQuery).then(snapshot => {
+        const data = snapshot.val();
+        if (data) {
+            const latest = Object.values(data)
+                .map(v => ({ ...v, timestamp: parseInt(v.timestamp) }))
+                .sort((a, b) => b.timestamp - a.timestamp)[0];
+            if (latest) {
+                updateLatestValues(latest.temperature, latest.humidity, latest.timestamp);
+            }
+        }
+    });
+}, 60000); // 60000 ms = 1 dakika
+
 function adjustCanvasHeight() {
     const container = document.querySelector(".canvas-container");
     const width = container.offsetWidth; // Kapsayıcının genişliğini alın
@@ -152,56 +167,27 @@ function adjustCanvasHeight() {
 window.addEventListener("resize", adjustCanvasHeight); // Ekran boyutu değiştikçe yeniden hesaplar
 adjustCanvasHeight(); // Sayfa yüklendiğinde çalıştır
 
-onValue(dataRef, (snapshot) => {
-    const data = snapshot.val();
-    labels.length = 0;
-    temperatureData.length = 0;
-    humidityData.length = 0;
 
-    let latestEntry = null;
 
-    Object.keys(data).forEach((key) => {
-        labels.push(formatTimestamp(parseInt(data[key].timestamp)));
-        temperatureData.push(data[key].temperature);
-        humidityData.push(data[key].humidity);
+function downsampleData(labels, temp, hum, maxPoints) {
+    const total = labels.length;
+    if (total <= maxPoints) return { labels, temp, hum };
 
-        // En yeni veriyi bulmak için karşılaştırma yap
-        if (!latestEntry || parseInt(data[key].timestamp) > parseInt(latestEntry.timestamp)) {
-            latestEntry = data[key];
-        }
-    });
-
-    // Eğer en yeni veri varsa, HTML'deki etiketleri güncelle
-    if (latestEntry) {
-        updateLatestValues(latestEntry.temperature, latestEntry.humidity, latestEntry.timestamp);
+    const step = Math.ceil(total / maxPoints);
+    const dsLabels = [];
+    const dsTemp = [];
+    const dsHum = [];
+    for (let i = 0; i < total; i += step) {
+        dsLabels.push(labels[i]);
+        dsTemp.push(temp[i]);
+        dsHum.push(hum[i]);
     }
-
-    const timeRange = Math.abs(endDate - startDate); // Tarih aralığını hesapla (saniye cinsinden)
-
-    // StepSize ve Unit ayarı
-    if (timeRange > 7 * 24 * 60 * 60) { // 7 günden büyük aralıklar
-        sensorChart.options.scales.x.time.unit = "month"; // Ay birimi
-        sensorChart.options.scales.x.ticks.stepSize = 1; // Her 1 ayda bir göster
-    } else if (timeRange > 24 * 60 * 60) { // 1 günden büyük aralıklar
-        sensorChart.options.scales.x.time.unit = "day"; // Gün birimi
-        sensorChart.options.scales.x.ticks.stepSize = 1; // Her gün için bir etiket
-    } else if (timeRange > 60 * 60) { // Saatlik aralıklar
-        sensorChart.options.scales.x.time.unit = "hour"; // Saat birimi
-        sensorChart.options.scales.x.ticks.stepSize = 1; // Her saat bir etiket
-    } else {
-        sensorChart.options.scales.x.time.unit = "minute"; // Dakika birimi
-        sensorChart.options.scales.x.ticks.stepSize = 5; // Her 5 dakikada bir
-    }
-
-
-
-    sensorChart.update();
-});
-
-
+    return { labels: dsLabels, temp: dsTemp, hum: dsHum };
+}
 function filterData(range) {
     const now = Math.floor(Date.now() / 1000);
     let minTimestamp = 0;
+    let maxPoints = 500;
 
     switch (range) {
         case '30m': minTimestamp = now - 1800; break;
@@ -217,54 +203,100 @@ function filterData(range) {
         case '6m': minTimestamp = now - 15552000; break;
         case '1y': minTimestamp = now - 31536000; break;
         case 'all': minTimestamp = 0; break;
+        default: minTimestamp = now - 1800; break;
     }
 
-    onValue(dataRef, (snapshot) => {
-        const data = snapshot.val();
-        const filteredLabels = [];
-        const filteredTemp = [];
-        const filteredHumidity = [];
+    
 
-        Object.keys(data).forEach((key) => {
-            const timestamp = parseInt(data[key].timestamp);
-            if (timestamp >= minTimestamp) {
-                filteredLabels.push(formatTimestamp(timestamp));
-                filteredTemp.push(data[key].temperature);
-                filteredHumidity.push(data[key].humidity);
-            }
-        });
-        const timeRange = Math.abs(now - minTimestamp);
-        if (timeRange > 7 * 24 * 60 * 60) { // 7 günden büyük aralıklar
-            sensorChart.options.scales.x.time.unit = "month"; // Ay birimi
-            sensorChart.options.scales.x.ticks.stepSize = 1; // Her 1 ayda bir göster
-        } else if (timeRange > 24 * 60 * 60) { // 1 günden büyük aralıklar
-            sensorChart.options.scales.x.time.unit = "day"; // Gün birimi
-            sensorChart.options.scales.x.ticks.stepSize = 1; // Her gün için bir etiket
-        } else if (timeRange > 60 * 60) { // Saatlik aralıklar
-            sensorChart.options.scales.x.time.unit = "hour"; // Saat birimi
-            sensorChart.options.scales.x.ticks.stepSize = 1; // Her saat bir etiket
-        } else {
-            sensorChart.options.scales.x.time.unit = "minute"; // Dakika birimi
-            sensorChart.options.scales.x.ticks.stepSize = 5; // Her 5 dakikada bir
+    // Önce sayısal olarak dene
+    let queryRef = query(
+        dataRef,
+        orderByChild("timestamp"),
+        startAt(minTimestamp)
+    );
+
+    get(queryRef).then((snapshot) => {
+        let data = snapshot.exists() ? snapshot.val() : null;
+
+        // Eğer veri gelmezse, string olarak tekrar dene
+        if (!data && minTimestamp !== 0) {
+            queryRef = query(
+                dataRef,
+                orderByChild("timestamp"),
+                startAt(minTimestamp.toString())
+            );
+            return get(queryRef);
         }
+        return { val: () => data };
+    }).then((snapshot) => {
+        const data = snapshot.val();
         labels.length = 0;
-        labels.push(...filteredLabels);
         temperatureData.length = 0;
-        temperatureData.push(...filteredTemp);
         humidityData.length = 0;
-        humidityData.push(...filteredHumidity);
+        let latestEntry = null;
+
+        if (data) {
+            const sortedData = Object.entries(data)
+                .map(([_, v]) => ({ ...v, timestamp: parseInt(v.timestamp) }))
+                .sort((a, b) => a.timestamp - b.timestamp)
+                .filter(entry => entry.timestamp >= minTimestamp);
         
-        sensorChart.update();
+            sortedData.forEach(entry => {
+                labels.push(formatTimestamp(entry.timestamp));
+                temperatureData.push(entry.temperature);
+                humidityData.push(entry.humidity);
+                if (!latestEntry || entry.timestamp > latestEntry.timestamp) {
+                    latestEntry = entry;
+                }
+            });
+        
+            // Sadece 1 gün ve üzeri aralıklarda downsample uygula
+            if (
+                range === '1d' || range === '3d' || range === '1w' ||
+                range === '1m' || range === '3m' || range === '6m' ||
+                range === '1y' || range === 'all'
+            ) {maxPoints = 300;
+                const ds = downsampleData(labels, temperatureData, humidityData, maxPoints);
+                labels.length = 0;
+                labels.push(...ds.labels);
+                temperatureData.length = 0;
+                temperatureData.push(...ds.temp);
+                humidityData.length = 0;
+                humidityData.push(...ds.hum);
+            }
+            const timeRange = Math.abs(now - minTimestamp);
+            if (timeRange > 30 * 24 * 60 * 60) { // 7 günden büyük aralıklar
+                sensorChart.options.scales.x.time.unit = "month"; // Ay birimi
+                sensorChart.options.scales.x.ticks.stepSize = 1; // Her 1 ayda bir göster
+            } else if (timeRange > 72 * 60 * 60) { // 1 günden büyük aralıklar
+                sensorChart.options.scales.x.time.unit = "day"; // Gün birimi
+                sensorChart.options.scales.x.ticks.stepSize = 1; // Her gün için bir etiket
+            } else if (timeRange > 60 * 60) { // Saatlik aralıklar
+                sensorChart.options.scales.x.time.unit = "hour"; // Saat birimi
+                sensorChart.options.scales.x.ticks.stepSize = 1; // Her saat bir etiket
+            } else {
+                sensorChart.options.scales.x.time.unit = "minute"; // Dakika birimi
+                sensorChart.options.scales.x.ticks.stepSize = 5; // Her 5 dakikada bir
+            }
+            sensorChart.update();
+
+            if (latestEntry) {
+                updateLatestValues(latestEntry.temperature, latestEntry.humidity, latestEntry.timestamp);
+            }
+        } else {
+            sensorChart.update();
+        }
+    }).catch((err) => {
+        console.error("Firebase error:", err);
     });
 }
 
+////////////// Özel tarih aralığı seçimi //////////////
 flatpickr("#startDate", { enableTime: true, dateFormat: "Y-m-d H:i" });
 flatpickr("#endDate", { enableTime: true, dateFormat: "Y-m-d H:i" });
 
 const startDate = new Date(document.getElementById("startDate").value).getTime() / 1000; 
 const endDate = new Date(document.getElementById("endDate").value).getTime() / 1000;
-
-
 
 console.log("Başlangıç Tarihi:", startDate);
 console.log("Bitiş Tarihi:", endDate);
@@ -295,36 +327,55 @@ function applyCustomDateFilter() {
 
         // Zaman aralığını hesaplayın
         const timeRange = Math.abs(endDate - startDate); // Tarih aralığı (saniye cinsinden)
-        if (timeRange > 7 * 24 * 60 * 60) { // 7 günden büyük bir aralık için
-            sensorChart.options.scales.x.time.unit = "month"; // X ekseni birimi ay olsun
-            sensorChart.options.scales.x.ticks.stepSize = 1; // Her 1 ayda bir göster
-        } else if (timeRange > 24 * 60 * 60) { // 1 günden büyük bir aralık için
-            sensorChart.options.scales.x.time.unit = "day"; // X ekseni birimi gün olsun
-            sensorChart.options.scales.x.ticks.stepSize = 1; // Her gün için bir etiket
-        } else if (timeRange > 60 * 60) { // Saatlik aralıklar
-            sensorChart.options.scales.x.time.unit = "hour"; // Saat birimi
-            sensorChart.options.scales.x.ticks.stepSize = 1; // Her saat bir etiket
-        } else {
-            sensorChart.options.scales.x.time.unit = "minute"; // Dakika birimi
-            sensorChart.options.scales.x.ticks.stepSize = 5; // Her 5 dakikada bir
+        let maxPoints = 500;
+        if (timeRange >= 24 * 60 * 60) { // 1 gün ve üzeri aralıklar için
+            maxPoints = 300;
+        }
+
+        // Downsample uygula (gerekirse)
+        let ds = { labels: filteredLabels, temp: filteredTemp, hum: filteredHumidity };
+        if (filteredLabels.length > maxPoints) {
+            ds = downsampleData(filteredLabels, filteredTemp, filteredHumidity, maxPoints);
         }
 
         // Grafiği güncelle
         labels.length = 0;
-        labels.push(...filteredLabels);
+        labels.push(...ds.labels);
         temperatureData.length = 0;
-        temperatureData.push(...filteredTemp);
+        temperatureData.push(...ds.temp);
         humidityData.length = 0;
-        humidityData.push(...filteredHumidity);
+        humidityData.push(...ds.hum);
+
+        // Eksen birimini ayarla
+        if (timeRange > 30 * 24 * 60 * 60) { // 7 günden büyük bir aralık için
+            sensorChart.options.scales.x.time.unit = "month";
+            sensorChart.options.scales.x.ticks.stepSize = 1;
+        } else if (timeRange > 72 * 60 * 60) { // 1 günden büyük bir aralık için
+            sensorChart.options.scales.x.time.unit = "day";
+            sensorChart.options.scales.x.ticks.stepSize = 1;
+        } else if (timeRange > 60 * 60) { // Saatlik aralıklar
+            sensorChart.options.scales.x.time.unit = "hour";
+            sensorChart.options.scales.x.ticks.stepSize = 1;
+        } else {
+            sensorChart.options.scales.x.time.unit = "minute";
+            sensorChart.options.scales.x.ticks.stepSize = 5;
+        }
 
         sensorChart.update();
     });
 }
 
 
+// Sayfa yüklendiğinde varsayılan filtreyi uygula
+function selectDefaultFilter() {
+    // "1d" butonunu aktif yap
+    const defaultBtn = document.querySelector('.filter-container button[data-range="1d"]');
+    if (defaultBtn) {
+        defaultBtn.classList.add("active");
+    }
+    filterData('1d');
+}
 
-
-
+window.addEventListener("DOMContentLoaded", selectDefaultFilter);
 window.filterData = filterData;
 window.applyCustomDateFilter = applyCustomDateFilter;
-
