@@ -18,7 +18,7 @@ jobs:
     - name: Create config.js
       run: |
         echo "const firebaseConfig = {" > config.js
-        echo "  apiKey: \"${{ secrets.FIREBASE_API_KEY }}\"," >> config.js
+        echo "  apiKey: \"${{ secrets.FIREBASE_API_KEY || '' }}\"," >> config.js
         echo "  authDomain: \"sensordata-e720d.firebaseapp.com\"," >> config.js
         echo "  databaseURL: \"https://sensordata-e720d-default-rtdb.europe-west1.firebasedatabase.app\"," >> config.js
         echo "  projectId: \"sensordata-e720d\"," >> config.js
