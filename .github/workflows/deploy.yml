@@ -1,0 +1,37 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Create config.js
+      run: |
+        echo "const firebaseConfig = {" > config.js
+        echo "  apiKey: \"${{ secrets.FIREBASE_API_KEY }}\"," >> config.js
+        echo "  authDomain: \"sensordata-e720d.firebaseapp.com\"," >> config.js
+        echo "  databaseURL: \"https://sensordata-e720d-default-rtdb.europe-west1.firebasedatabase.app\"," >> config.js
+        echo "  projectId: \"sensordata-e720d\"," >> config.js
+        echo "  storageBucket: \"sensordata-e720d.firebasestorage.app\"," >> config.js
+        echo "  messagingSenderId: \"134640996581\"," >> config.js
+        echo "  appId: \"1:134640996581:web:33da07f917360256a2040c\"," >> config.js
+        echo "  measurementId: \"G-B32EC2D1E6\"" >> config.js
+        echo "};" >> config.js
+        echo "" >> config.js
+        echo "export default firebaseConfig;" >> config.js
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: .
