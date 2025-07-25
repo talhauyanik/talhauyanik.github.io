@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, onValue, get, query, orderByChild, startAt,update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, onValue, get, query, orderByChild, startAt,update,limitToLast,orderByKey } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import firebaseConfig from './config.js';
 
 const app = initializeApp(firebaseConfig);
@@ -113,10 +113,36 @@ function formatTimestamp(unixTimestamp) {
     return unixTimestamp * 1000; // Unix Timestamp'i milisaniyeye çevir.
 }
 
+function computeHeatIndex(temp, humidity) {
+    const T = temp;
+    const R = humidity;
+    
+    const c1 = -8.78469475556;
+    const c2 = 1.61139411;
+    const c3 = 2.33854883889;
+    const c4 = -0.14611605;
+    const c5 = -0.012308094;
+    const c6 = -0.0164248277778;
+    const c7 = 0.002211732;
+    const c8 = 0.00072546;
+    const c9 = -0.000003582;
+
+    return c1 + 
+           c2*T + 
+           c3*R + 
+           c4*T*R + 
+           c5*T*T + 
+           c6*R*R + 
+           c7*T*T*R + 
+           c8*T*R*R + 
+           c9*T*T*R*R;
+}
 
 function updateLatestValues(temp, humidity, timestamp) {
+    console.log("Sıcaklık:", temp, "Nem:", humidity, "Zaman damgası:", timestamp);
     document.getElementById("latestTemperature").textContent = temp.toFixed(1);
     document.getElementById("latestHumidity").textContent = humidity.toFixed(1);
+    document.getElementById("feelslike").textContent = computeHeatIndex(temp,humidity).toFixed(1);
     document.getElementById("lastUpdatedTime").textContent = new Date(timestamp * 1000).toLocaleString("tr-TR", {
         year: 'numeric',
         month: 'long',
@@ -128,36 +154,43 @@ function updateLatestValues(temp, humidity, timestamp) {
     
         const tempElement = document.getElementById("latestTemperature");
         const humidityElement = document.getElementById("latestHumidity");
+        const feelsLikeElement = document.getElementById("feelslike");
     
         tempElement.textContent = temp.toFixed(1);
         humidityElement.textContent = humidity.toFixed(1);
+        feelsLikeElement.textContent = computeHeatIndex(temp, humidity).toFixed(1);
     
         // Flash animasyonunu tetikleyin
         tempElement.classList.add("flash");
         humidityElement.classList.add("flash");
+        feelsLikeElement.classList.add("flash");
     
         // Animasyon tamamlandıktan sonra sınıfı kaldırın
         setTimeout(() => {
             tempElement.classList.remove("flash");
             humidityElement.classList.remove("flash");
+            feelsLikeElement.classList.remove("flash");
         }, 500);
     
 }
 setInterval(() => {
     // En son veriyi çekmek için sorgu
-    const latestQuery = query(dataRef, orderByChild("timestamp"));
+    const latestQuery = query(
+        dataRef,
+        orderByKey(),      // Anahtara göre sırala (pushId genellikle zaman sıralıdır)
+        limitToLast(1)     // Sadece en son veriyi al
+    );
     get(latestQuery).then(snapshot => {
         const data = snapshot.val();
         if (data) {
-            const latest = Object.values(data)
-                .map(v => ({ ...v, timestamp: parseInt(v.timestamp) }))
-                .sort((a, b) => b.timestamp - a.timestamp)[0];
+            // pushId ile geldiği için Object.values ile al
+            const latest = Object.values(data)[0];
             if (latest) {
-                updateLatestValues(latest.temperature, latest.humidity, latest.timestamp);
+                updateLatestValues(latest.temperature, latest.humidity, parseInt(latest.timestamp));
             }
         }
     });
-}, 60000); // 60000 ms = 1 dakika
+}, 65000); // 1 dakika
 
 function adjustCanvasHeight() {
     const container = document.querySelector(".canvas-container");
